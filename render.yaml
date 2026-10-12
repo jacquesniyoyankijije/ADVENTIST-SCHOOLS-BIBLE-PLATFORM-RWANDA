@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: adventist-schools-bible-platform-rwanda
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    branch: main
+    autoDeploy: true
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
