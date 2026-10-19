@@ -8,11 +8,12 @@ This repository uses Supabase Auth and PostgreSQL. Apply migrations in order fro
 2. Open **SQL Editor → New query**.
 3. Copy and run `supabase/migrations/0001_initial.sql`.
 4. In a separate query, copy and run `supabase/migrations/0002_auth_and_privilege_hardening.sql`.
-5. In **Project Settings → API** (or the API keys page), copy the Project URL and the public anon/publishable key.
-6. In Render → your Static Site → **Environment**, add:
+5. In another query, copy and run `supabase/migrations/0003_platform_schema.sql` (full platform tables: classes, students, results, discipline, fees, Bible and lesson content, messaging, notifications — all with Row Level Security).
+6. In **Project Settings → API** (or the API keys page), copy the Project URL and the public anon/publishable key.
+7. In Render → your Static Site → **Environment**, add:
    - `VITE_SUPABASE_URL` = your Supabase Project URL
    - `VITE_SUPABASE_ANON_KEY` = your public anon/publishable key
-7. Save changes and trigger a new deploy. These `VITE_` values are bundled into the public frontend; only use the public key, never a service_role/secret key.
+8. Save changes and trigger a new deploy. These `VITE_` values are bundled into the public frontend; only use the public key, never a service_role/secret key.
 
 ## Create and promote the Super Administrator
 
@@ -40,5 +41,5 @@ Only a trusted project owner should run the promotion SQL. Do not add a browser 
 - Never expose the Supabase service_role/secret key in browser code.
 - New registrations receive the Ordinary User role by default.
 - The profile trigger blocks users from changing their own role or school assignment.
-- Student results, discipline, and finance modules still require their own tables and carefully scoped RLS policies before they are used with real records.
+- Migration 0003 adds the student results, discipline and finance tables with carefully scoped RLS policies; review them before using real records.
 - Apply later migrations only after reviewing them and keeping a safe copy of important data.
