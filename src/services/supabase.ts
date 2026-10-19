@@ -76,6 +76,106 @@ export function markDemoSession(): void {
   localStorage.setItem(DEMO_SESSION_KEY, "active")
 }
 
+/* ------------------------------------------------------------------ */
+/* Provider sign-in: Google OAuth and SAML SSO                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Remembers where a visitor wanted to go, so provider redirects can
+ * continue to that page once the session is restored.
+ */
+const AUTH_NEXT_KEY = "asbp_auth_next"
+
+export function rememberNext(path?: string): void {
+  if (path) localStorage.setItem(AUTH_NEXT_KEY, path)
+}
+
+/** Returns (and clears) the page remembered before a provider sign-in. */
+export function takeNext(): string | null {
+  const next = localStorage.getItem(AUTH_NEXT_KEY)
+  if (next) localStorage.removeItem(AUTH_NEXT_KEY)
+  return next
+}
+
+/** Sign in with Google OAuth. Returns an error message or null. */
+export async function signInWithGoogle(
+  nextPath?: string,
+): Promise<string | null> {
+  if (!supabase) return null // demo mode: caller simulates the flow
+  rememberNext(nextPath)
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: window.location.origin },
+  })
+  return error ? error.message : null
+}
+
+/**
+ * Sign in with SAML single sign-on. Supabase resolves the identity
+ * provider from the registered domain (email addresses work too — the
+ * part after @ is used). Returns an error message or null.
+ */
+export async function signInWithSso(
+  domainOrEmail: string,
+  nextPath?: string,
+): Promise<string | null> {
+  if (!supabase) return null
+  const domain = domainOrEmail.includes("@")
+    ? domainOrEmail.split("@").pop()!.toLowerCase()
+    : domainOrEmail.trim().toLowerCase()
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain))
+    return "Enter your work email address (e.g. name@adventist.rw)."
+  rememberNext(nextPath)
+  const { error } = await supabase.auth.signInWithSSO({
+    domain,
+    options: { redirectTo: window.location.origin },
+  })
+  return error ? error.message : null
+}
+
+/* ------------------------------------------------------------------ */
+/* Profile storage (public.profiles) for signed-in users                */
+/* ------------------------------------------------------------------ */
+
+export type SessionProfile = {
+  fullName: string
+  role: string
+  avatarUrl: string | null
+  initials: string
+} | null
+
+/** Loads the signed-in user's profile and role from the database. */
+export async function getSessionProfile(): Promise<SessionProfile> {
+  if (!supabase) return null
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name, avatar_url, roles(name)")
+    .limit(1)
+    .maybeSingle()
+  if (!data) return null
+  const row = data as unknown as {
+    full_name: string | null
+    avatar_url: string | null
+    roles: { name: string }[] | { name: string } | null
+  }
+  const roleRow = Array.isArray(row.roles)
+    ? row.roles[0]
+    : (row.roles as { name: string } | null)
+  const fullName: string = row.full_name ?? "New user"
+  const initials: string = fullName
+    .split(/\s+/)
+    .filter((part: string) => Boolean(part))
+    .slice(0, 2)
+    .map((part: string) => part.charAt(0).toUpperCase())
+    .join("")
+  return {
+    fullName,
+    role: roleRow?.name ?? "Ordinary User",
+    avatarUrl: row.avatar_url ?? null,
+    initials: initials || "U",
+  }
+}
+
 /** Friendly names for pages that can be requested before signing in. */
 export const pageNames: Record<string, string> = {
   "/app": "your dashboard",

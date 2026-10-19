@@ -15,6 +15,33 @@ This repository uses Supabase Auth and PostgreSQL. Apply migrations in order fro
    - `VITE_SUPABASE_ANON_KEY` = your public anon/publishable key
 8. Save changes and trigger a new deploy. These `VITE_` values are bundled into the public frontend; only use the public key, never a service_role/secret key.
 
+## Enable sign-in with Google (OAuth)
+
+1. In Supabase → **Authentication → Providers → Google**, enable the provider.
+2. Follow the link on that page to the Google Cloud Console:
+   - Create an **OAuth consent screen** (External) and a **Web application** credential.
+   - Add `https://YOUR-PROJECT.supabase.co/auth/v1/callback` as an authorized redirect URI.
+   - Copy the Google **Client ID** and **Client Secret** into the Supabase provider settings.
+3. In Supabase → **Authentication → URL Configuration**, set the **Site URL** and add your deployed site (e.g. `https://adventist-schools-platform.onrender.com`) to **Redirect URLs**.
+4. Deployed with the `VITE_SUPABASE_*` variables set, the sign-in page automatically switches to live mode: the **Google** button redirects through Google and returns signed in, landing on the page the visitor originally requested.
+
+## Enable single sign-on (SAML SSO)
+
+SAML SSO requires a Supabase plan that includes it (Team or higher), plus your identity provider (e.g. Okta, Azure AD, or any SAML 2.0 IdP):
+
+1. In Supabase → **Authentication → SSO Providers**, add a provider and connect it with your IdP's metadata (or follow the Supabase SAML connection wizard).
+2. Register the domains that are allowed to use it (e.g. `adventist.rw`) in the same section.
+3. Add the deployed site to **Redirect URLs** as above.
+4. Users enter their work email on the sign-in page and press **Continue with SSO** — Supabase resolves the provider from the email domain and redirects through the IdP.
+
+## How provider accounts are stored
+
+Migration `0004_sso_identity_support.sql` makes Google and SAML sign-ups first-class accounts:
+
+- The existing `on_auth_user_created` trigger now also stores the provider-supplied **name and avatar** in `public.profiles`.
+- A new `profiles_sync_identity` trigger keeps the profile name/avatar in sync when the identity provider updates them.
+- Every new account — email, Google or SSO — still starts as the least-privilege **Ordinary User** role; promote administrators with the SQL below.
+
 ## Create and promote the Super Administrator
 
 1. Open your deployed website and use **Sign in → Create an account** with the intended administrator email.

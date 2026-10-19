@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { Link, useNavigate } from "react-router"
-import { isSignedIn } from "../../services/supabase"
+import { isSignedIn, takeNext } from "../../services/supabase"
 
 type IconName = "home" | "book" | "library" | "chat" | "school" | "chart" | "users" | "arrow" | "menu" | "close" | "bell" | "shield" | "pin"
 
@@ -227,8 +227,18 @@ export default function App() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    isSignedIn().then(setSignedIn)
-  }, [])
+    // Provider sign-ins (Google, SSO) land back on the home page: pick up
+    // the destination that was remembered before the redirect.
+    isSignedIn().then((current) => {
+      const next = takeNext()
+      if (current && next) {
+        setSignedIn(true)
+        navigate(next)
+      } else {
+        setSignedIn(current)
+      }
+    })
+  }, [navigate])
 
   return (
     <div className="site-shell">

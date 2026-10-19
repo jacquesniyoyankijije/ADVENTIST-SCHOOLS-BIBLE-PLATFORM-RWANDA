@@ -9,7 +9,12 @@ import {
   students,
   type Role,
 } from "../data"
-import { isSignedIn, signOut } from "../../services/supabase"
+import {
+  getSessionProfile,
+  isSignedIn,
+  signOut,
+  type SessionProfile,
+} from "../../services/supabase"
 
 export type AppContext = {
   role: Role
@@ -20,6 +25,7 @@ export function DashboardLayout() {
   const [role, setRole] = useState<Role>("Super Administrator")
   const [mobileOpen, setMobileOpen] = useState(false)
   const [noticeOpen, setNoticeOpen] = useState(false)
+  const [profile, setProfile] = useState<SessionProfile>(null)
   const [profileOpen, setProfileOpen] = useState(false)
   const [query, setQuery] = useState("")
   const searchRef = useRef<HTMLInputElement>(null)
@@ -45,11 +51,11 @@ export function DashboardLayout() {
   // return to the page they tried to open.
   useEffect(() => {
     let active = true
-    isSignedIn().then((signedIn) => {
-      if (!active || signedIn) return
-      navigate("/signin", {
-        replace: true,
-        state: { requested: location.pathname },
+    isSignedIn().then((authenticated) => {
+      if (!active || !authenticated) return
+      // Load the signed-in account's profile from the database once per page.
+      getSessionProfile().then((loaded) => {
+        if (active && loaded) setProfile(loaded)
       })
     })
     return () => {
@@ -242,10 +248,10 @@ export function DashboardLayout() {
               aria-expanded={profileOpen}
               type="button"
             >
-              <span className="app-avatar">NJ</span>
+              <span className="app-avatar">{profile?.initials ?? "NJ"}</span>
               <span>
-                <strong>Niyoyankijije Jacques</strong>
-                <small>{role}</small>
+                <strong>{profile?.fullName ?? "Niyoyankijije Jacques"}</strong>
+                <small>{profile?.role ?? role}</small>
               </span>
               <span>⌄</span>
             </button>
