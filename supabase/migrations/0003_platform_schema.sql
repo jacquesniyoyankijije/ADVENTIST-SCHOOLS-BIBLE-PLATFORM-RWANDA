@@ -293,8 +293,10 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+begin
   insert into public.system_audit_logs(actor_id, action, entity_type, entity_id, details)
-  values (auth.uid(), action, entity_type, entity_id, details)
+  values (auth.uid(), action, entity_type, entity_id, details);
+end
 $$;
 
 -- ============================================================
