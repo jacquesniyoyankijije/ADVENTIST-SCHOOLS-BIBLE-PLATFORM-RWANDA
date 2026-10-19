@@ -1,7 +1,13 @@
 import { useState, type FormEvent } from "react"
-import { Link, useNavigate } from "react-router"
+import { Link, useLocation, useNavigate } from "react-router"
 import { Icon, PlatformLogo } from "../components/Icons"
-import { register, signIn, supabaseConfigured } from "../../services/supabase"
+import {
+  markDemoSession,
+  pageLabel,
+  register,
+  signIn,
+  supabaseConfigured,
+} from "../../services/supabase"
 
 export function AuthPage() {
   const [mode, setMode] = useState<"signin" | "register">("signin")
@@ -11,6 +17,9 @@ export function AuthPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+  const requested = (location.state as { requested?: string } | null)
+    ?.requested
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -32,9 +41,12 @@ export function AuthPage() {
         setLoading(false)
         return setError(failure)
       }
+    } else {
+      // Demo mode (no Supabase configured): simulated session.
+      markDemoSession()
     }
-    // Demo mode (no Supabase configured): simulated sign-in.
-    window.setTimeout(() => navigate("/app"), 650)
+    // Continue to the page the visitor asked for, or the dashboard.
+    window.setTimeout(() => navigate(requested ?? "/app"), 650)
   }
 
   return (
@@ -82,6 +94,12 @@ export function AuthPage() {
               ? "Access your dashboard and learning resources."
               : "Your account will be reviewed by an administrator."}
           </p>
+          {requested && (
+            <p className="auth-notice">
+              <Icon name="shield" />
+              Please sign in to continue to {pageLabel(requested)}.
+            </p>
+          )}
           <div className="auth-tabs">
             <button
               className={mode === "signin" ? "active" : ""}

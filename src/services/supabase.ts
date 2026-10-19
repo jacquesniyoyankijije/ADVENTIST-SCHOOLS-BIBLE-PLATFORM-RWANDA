@@ -50,7 +50,54 @@ export async function register(
   return error ? error.message : null
 }
 
-/** Sign out of the current session (no-op in demo mode). */
+/** Sign out of the current session (clears the demo session too). */
 export async function signOut(): Promise<void> {
   if (supabase) await supabase.auth.signOut()
+  localStorage.removeItem(DEMO_SESSION_KEY)
+}
+
+/* ------------------------------------------------------------------ */
+/* Session state, shared by live and demo mode                        */
+/* ------------------------------------------------------------------ */
+
+const DEMO_SESSION_KEY = "asbp_demo_session"
+
+/** Whether a visitor has an active session (live or demo). */
+export async function isSignedIn(): Promise<boolean> {
+  if (supabase) {
+    const { data } = await supabase.auth.getSession()
+    return Boolean(data.session)
+  }
+  return localStorage.getItem(DEMO_SESSION_KEY) === "active"
+}
+
+/** Marks a simulated session in demo mode (no Supabase configured). */
+export function markDemoSession(): void {
+  localStorage.setItem(DEMO_SESSION_KEY, "active")
+}
+
+/** Friendly names for pages that can be requested before signing in. */
+export const pageNames: Record<string, string> = {
+  "/app": "your dashboard",
+  "/app/bible": "the Bible Reader",
+  "/app/library": "the Ellen G. White Library",
+  "/app/lessons": "Bible Lessons",
+  "/app/messages": "Messages",
+  "/app/announcements": "Announcements",
+  "/app/notifications": "Notifications",
+  "/app/schools": "the Schools Directory",
+  "/app/students": "Students",
+  "/app/results": "Results & Grades",
+  "/app/discipline": "Discipline",
+  "/app/fees": "Fees & Bursar",
+  "/app/users": "Users & Roles",
+  "/app/audit": "Audit Logs",
+  "/app/settings": "Settings",
+  "/app/profile": "your profile",
+}
+
+/** Human label for a requested path, for sign-in prompts. */
+export function pageLabel(path?: string): string {
+  if (!path) return "the platform"
+  return pageNames[path] ?? "the platform"
 }

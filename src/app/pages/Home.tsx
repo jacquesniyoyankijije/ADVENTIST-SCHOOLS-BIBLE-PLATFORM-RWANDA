@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { Link, useNavigate } from "react-router"
+import { isSignedIn } from "../../services/supabase"
 
 type IconName = "home" | "book" | "library" | "chat" | "school" | "chart" | "users" | "arrow" | "menu" | "close" | "bell" | "shield" | "pin"
 
@@ -193,7 +194,12 @@ const stats: { value: string; label: string; icon: IconName }[] = [
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [signedIn, setSignedIn] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    isSignedIn().then(setSignedIn)
+  }, [])
 
   return (
     <div className="site-shell">
@@ -231,10 +237,10 @@ export default function App() {
           <div className="header-actions">
             <button
               className="sign-in-button"
-              onClick={() => navigate("/signin")}
+              onClick={() => navigate(signedIn ? "/app" : "/signin")}
               type="button"
             >
-              Sign in
+              {signedIn ? "Dashboard" : "Sign in"}
             </button>
             <button
               aria-expanded={menuOpen}
@@ -266,13 +272,13 @@ export default function App() {
             <button
               onClick={() => {
                 setMenuOpen(false)
-                navigate("/signin")
+                navigate(signedIn ? "/app" : "/signin")
               }}
               type="button"
               className="mobile-highlight"
             >
               <Icon name="arrow" />
-              Sign in
+              {signedIn ? "Dashboard" : "Sign in"}
             </button>
             <button
               onClick={() => {

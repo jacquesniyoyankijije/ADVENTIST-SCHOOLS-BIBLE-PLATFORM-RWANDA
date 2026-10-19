@@ -9,6 +9,7 @@ import {
   students,
   type Role,
 } from "../data"
+import { isSignedIn, signOut } from "../../services/supabase"
 
 export type AppContext = {
   role: Role
@@ -39,6 +40,22 @@ export function DashboardLayout() {
   } | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
+
+  // Auth gate: unauthenticated visitors are asked to sign in and then
+  // return to the page they tried to open.
+  useEffect(() => {
+    let active = true
+    isSignedIn().then((signedIn) => {
+      if (!active || signedIn) return
+      navigate("/signin", {
+        replace: true,
+        state: { requested: location.pathname },
+      })
+    })
+    return () => {
+      active = false
+    }
+  }, [location.pathname, navigate])
 
   const visibleGroups = useMemo(
     () =>
@@ -270,7 +287,13 @@ export function DashboardLayout() {
               <Link to="/app/settings">
                 <Icon name="settings" /> Settings
               </Link>
-              <button onClick={() => navigate("/")} type="button">
+              <button
+                onClick={async () => {
+                  await signOut()
+                  navigate("/")
+                }}
+                type="button"
+              >
                 <Icon name="logout" /> Sign out
               </button>
             </div>
