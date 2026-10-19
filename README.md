@@ -1,25 +1,40 @@
 # Adventist Schools & Bible Platform — Rwanda
 
-A Vite + JavaScript frontend intended for deployment as a **Render Static Site**. Supabase provides PostgreSQL and authentication; Render serves the compiled frontend.
+A Vite + JavaScript frontend deployed as a Render Static Site. Supabase provides authentication and PostgreSQL. This is an active foundation build; not all school, finance, discipline, communication, Bible and EGW workflows are complete yet.
 
 ## Run locally
+
 1. Install Node.js LTS.
 2. Run `npm install`.
-3. Copy `.env.example` to `.env.local` and enter your Supabase project URL and public anon/publishable key.
+3. Copy `.env.example` to `.env.local` and add your Supabase Project URL and public anon/publishable key.
 4. Run `npm run dev` and open the URL printed in the terminal.
 
-## Deploy to Render
-1. Push this repository to GitHub.
-2. In Render, choose **New + → Static Site** and connect this repository.
-3. Set branch to `main`.
-4. Build command: `npm install && npm run build`
-5. Publish directory: `dist`
-6. Add environment variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Render.
-7. Deploy. The included `render.yaml` defines the static site and SPA rewrite if you choose Render Blueprint deployment.
+## Render deployment
 
-## Important
-- This is the deployable frontend foundation, not a claim that every school, finance, discipline, Bible and EGW workflow is complete.
-- Create/configure a Supabase project and apply the SQL migrations before connecting real data.
-- Only use the public anon/publishable key in browser variables. Never put a Supabase `service_role` key in frontend code or Render's public build variables.
-- Protect student, discipline and financial records with PostgreSQL Row Level Security (RLS) and server-side permission checks before using real data.
-- Only publish Bible/EGW text for which you have the necessary rights.
+1. Connect this GitHub repository to Render as a **Static Site**.
+2. Use branch `main`.
+3. Build command: `npm install && npm run build`.
+4. Publish directory: `dist`.
+5. In Render → Static Site → **Environment**, add:
+   - `VITE_SUPABASE_URL` = your Supabase Project URL
+   - `VITE_SUPABASE_ANON_KEY` = your public anon/publishable key
+6. Save and redeploy. Commits to `main` should deploy automatically when auto-deploy is enabled.
+
+## Supabase setup
+
+Follow [supabase/README.md](supabase/README.md). In short:
+
+1. Create a Supabase project.
+2. Run `supabase/migrations/0001_initial.sql` in the Supabase SQL Editor.
+3. Run `supabase/migrations/0002_auth_and_privilege_hardening.sql` in a second query.
+4. Add the two public client environment variables in Render and redeploy.
+5. Register the intended administrator account on the website, then use the documented trusted SQL procedure to assign the Super Administrator role.
+
+## Security and scope
+
+- Never put a Supabase `service_role` or secret key in Vite/browser code.
+- New registrations are assigned the Ordinary User role by default.
+- The profile trigger blocks users from changing their own role or school assignment.
+- Promote a Super Administrator only through a trusted Supabase SQL Editor session; never through a public browser form.
+- Protect student, discipline and financial records with their own PostgreSQL Row Level Security (RLS) rules before using real data.
+- Only publish Bible/EGW texts for which you have the necessary rights.
