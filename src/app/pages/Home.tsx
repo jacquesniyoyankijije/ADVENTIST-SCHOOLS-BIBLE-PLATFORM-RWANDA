@@ -115,13 +115,42 @@ function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
 }
 
-const navItems: { label: string; icon: IconName; section: string }[] = [
+const navItems: {
+  label: string
+  icon: IconName
+  section: string
+  path?: string
+}[] = [
   { label: "Home", icon: "home", section: "home" },
-  { label: "Bible", icon: "book", section: "modules" },
-  { label: "Ellen G. White", icon: "library", section: "modules" },
-  { label: "Communication", icon: "chat", section: "community" },
-  { label: "Schools", icon: "school", section: "modules" },
+  { label: "Bible", icon: "book", section: "modules", path: "/app/bible" },
+  {
+    label: "Ellen G. White",
+    icon: "library",
+    section: "modules",
+    path: "/app/library",
+  },
+  {
+    label: "Communication",
+    icon: "chat",
+    section: "community",
+    path: "/app/messages",
+  },
+  {
+    label: "Schools",
+    icon: "school",
+    section: "modules",
+    path: "/app/schools",
+  },
 ]
+
+/** Landing nav items go to their page; the sign-in gate takes over from there. */
+function openNavItem(
+  item: { section: string; path?: string },
+  navigate: (path: string) => void,
+) {
+  if (item.path) navigate(item.path)
+  else document.getElementById(item.section)?.scrollIntoView({ behavior: "smooth" })
+}
 
 const modules: {
   title: string
@@ -224,7 +253,7 @@ export default function App() {
             {navItems.map((item, index) => (
               <button
                 className={index === 0 ? "active" : ""}
-                onClick={() => scrollToSection(item.section)}
+                onClick={() => openNavItem(item, navigate)}
                 key={item.label}
                 type="button"
               >
@@ -261,7 +290,7 @@ export default function App() {
                 key={item.label}
                 onClick={() => {
                   setMenuOpen(false)
-                  scrollToSection(item.section)
+                  openNavItem(item, navigate)
                 }}
                 type="button"
               >
