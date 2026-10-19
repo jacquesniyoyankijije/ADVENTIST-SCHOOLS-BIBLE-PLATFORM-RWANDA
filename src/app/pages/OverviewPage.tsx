@@ -1,4 +1,4 @@
-import { useOutletContext } from "react-router"
+import { useNavigate, useOutletContext } from "react-router"
 import { Icon, type IconName } from "../components/Icons"
 import type { AppContext } from "../components/DashboardLayout"
 import { announcements } from "../data"
@@ -44,6 +44,7 @@ const performance = [68, 76, 72, 84, 79, 89, 86, 93]
 
 export function OverviewPage() {
   const { role } = useOutletContext<AppContext>()
+  const navigate = useNavigate()
   const isStudent = role === "Student"
   const currentMetrics = isStudent
     ? [
@@ -164,7 +165,14 @@ export function OverviewPage() {
               <span className="page-eyebrow">Live updates</span>
               <h2>Recent activity</h2>
             </div>
-            <button type="button">View all</button>
+            <button
+              onClick={() =>
+                navigate(role === "Super Administrator" ? "/app/audit" : "/app/announcements")
+              }
+              type="button"
+            >
+              View all
+            </button>
           </div>
           <div className="activity-list">
             <div>
@@ -218,7 +226,9 @@ export function OverviewPage() {
               <span className="page-eyebrow">Community</span>
               <h2>Latest announcements</h2>
             </div>
-            <button type="button">See all</button>
+            <button onClick={() => navigate("/app/announcements")} type="button">
+              See all
+            </button>
           </div>
           {announcements.slice(0, 2).map((item) => (
             <article className="announcement-row" key={item.title}>

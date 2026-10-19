@@ -1,7 +1,14 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router"
 import { Icon, PlatformLogo } from "./Icons"
-import { navigation, notifications, roles, type Role } from "../data"
+import {
+  navigation,
+  notifications,
+  roles,
+  schools,
+  students,
+  type Role,
+} from "../data"
 
 export type AppContext = {
   role: Role
@@ -14,6 +21,18 @@ export function DashboardLayout() {
   const [noticeOpen, setNoticeOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [query, setQuery] = useState("")
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    function focusSearch(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault()
+        searchRef.current?.focus()
+      }
+    }
+    window.addEventListener("keydown", focusSearch)
+    return () => window.removeEventListener("keydown", focusSearch)
+  }, [])
   const [toast, setToast] = useState<{
     message: string
     tone: "success" | "error"
@@ -34,13 +53,37 @@ export function DashboardLayout() {
     [role],
   )
 
-  const searchResults = query.trim()
+  const normalizedQuery = query.trim().toLowerCase()
+  const moduleResults = normalizedQuery
     ? visibleGroups
         .flatMap((group) => group.items)
-        .filter((item) =>
-          item.label.toLowerCase().includes(query.toLowerCase()),
-        )
+        .filter((item) => item.label.toLowerCase().includes(normalizedQuery))
     : []
+  const studentResults = normalizedQuery
+    ? students
+        .filter((student) =>
+          student.name.toLowerCase().includes(normalizedQuery),
+        )
+        .map((student) => ({
+          label: `${student.name} · ${student.className}`,
+          path: "/app/students",
+          icon: "students" as const,
+        }))
+    : []
+  const schoolResults = normalizedQuery
+    ? schools
+        .filter((school) => school.name.toLowerCase().includes(normalizedQuery))
+        .map((school) => ({
+          label: school.name,
+          path: "/app/schools",
+          icon: "school" as const,
+        }))
+    : []
+  const searchResults = [
+    ...moduleResults,
+    ...studentResults,
+    ...schoolResults,
+  ].slice(0, 8)
 
   const pageTitle =
     navigation
@@ -102,14 +145,14 @@ export function DashboardLayout() {
             </div>
           ))}
         </nav>
-        <div className="sidebar-help">
+        <Link to="/help" className="sidebar-help">
           <Icon name="shield" />
           <div>
             <strong>Need assistance?</strong>
             <span>Visit the help center</span>
           </div>
           <Icon name="arrow" />
-        </div>
+        </Link>
       </aside>
 
       {mobileOpen && (
@@ -138,6 +181,7 @@ export function DashboardLayout() {
           <div className="global-search">
             <Icon name="search" />
             <input
+              ref={searchRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search modules, students, schools…"

@@ -6,6 +6,18 @@ export const router = createHashRouter([
     lazy: async () => ({ Component: (await import("./pages/Home")).default }),
   },
   {
+    path: "/help",
+    lazy: async () => ({
+      Component: (await import("./pages/InfoPage")).HelpPage,
+    }),
+  },
+  {
+    path: "/privacy",
+    lazy: async () => ({
+      Component: (await import("./pages/InfoPage")).PrivacyPage,
+    }),
+  },
+  {
     path: "/signin",
     lazy: async () => ({
       Component: (await import("./pages/AuthPage")).AuthPage,

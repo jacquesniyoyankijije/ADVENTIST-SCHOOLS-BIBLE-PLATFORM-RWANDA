@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react"
-import { useNavigate } from "react-router"
+import { Link, useNavigate } from "react-router"
 
 type IconName = "home" | "book" | "library" | "chat" | "school" | "chart" | "users" | "arrow" | "menu" | "close" | "bell" | "shield" | "pin"
 
@@ -129,6 +129,7 @@ const modules: {
   tone: string
   image: string
   alt: string
+  path: string
 }[] = [
   {
     title: "Bible",
@@ -138,6 +139,7 @@ const modules: {
     image:
       "https://images.unsplash.com/photo-1509021436665-8f07dbf5bf1d?auto=format&fit=crop&w=900&q=85",
     alt: "An open Bible",
+    path: "/app/bible",
   },
   {
     title: "Ellen G. White Library",
@@ -147,6 +149,7 @@ const modules: {
     image:
       "https://images.unsplash.com/photo-1592188657297-c6473609e988?auto=format&fit=crop&w=900&q=85",
     alt: "A reader surrounded by books",
+    path: "/app/library",
   },
   {
     title: "Communication",
@@ -156,6 +159,7 @@ const modules: {
     image:
       "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=85",
     alt: "Friends in conversation outdoors",
+    path: "/app/messages",
   },
   {
     title: "Schools",
@@ -165,6 +169,7 @@ const modules: {
     image:
       "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=900&q=85",
     alt: "A bright school classroom",
+    path: "/app/schools",
   },
   {
     title: "Results & Management",
@@ -174,6 +179,7 @@ const modules: {
     image:
       "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=85",
     alt: "Performance charts on a computer screen",
+    path: "/app/results",
   },
 ]
 
@@ -187,7 +193,6 @@ const stats: { value: string; label: string; icon: IconName }[] = [
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
   const navigate = useNavigate()
 
   return (
@@ -225,25 +230,11 @@ export default function App() {
 
           <div className="header-actions">
             <button
-              className="icon-button notification"
-              aria-label="View notifications"
+              className="sign-in-button"
+              onClick={() => navigate("/signin")}
               type="button"
             >
-              <Icon name="bell" />
-              <span>3</span>
-            </button>
-            <button
-              aria-expanded={profileOpen}
-              className="profile-button"
-              onClick={() => setProfileOpen((current) => !current)}
-              type="button"
-            >
-              <span className="avatar">NJ</span>
-              <span className="profile-copy">
-                <strong>Niyoyankijije Jacques</strong>
-                <small>Super Administrator</small>
-              </span>
-              <span className="chevron">⌄</span>
+              Sign in
             </button>
             <button
               aria-expanded={menuOpen}
@@ -256,23 +247,6 @@ export default function App() {
             </button>
           </div>
 
-          {profileOpen && (
-            <div className="profile-popover">
-              <strong>My account</strong>
-              <button onClick={() => navigate("/app/profile")} type="button">
-                Profile & preferences
-              </button>
-              <button onClick={() => navigate("/app/settings")} type="button">
-                System settings
-              </button>
-              <button onClick={() => navigate("/app/users")} type="button">
-                Security & permissions
-              </button>
-              <button onClick={() => navigate("/signin")} type="button">
-                Sign out
-              </button>
-            </div>
-          )}
         </div>
         {menuOpen && (
           <nav className="mobile-nav" aria-label="Mobile navigation">
@@ -289,6 +263,27 @@ export default function App() {
                 {item.label}
               </button>
             ))}
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                navigate("/signin")
+              }}
+              type="button"
+              className="mobile-highlight"
+            >
+              <Icon name="arrow" />
+              Sign in
+            </button>
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                navigate("/help")
+              }}
+              type="button"
+            >
+              <Icon name="shield" />
+              Help center
+            </button>
           </nav>
         )}
       </header>
@@ -300,7 +295,7 @@ export default function App() {
           <div className="hero-inner">
             <div className="hero-copy">
               <span className="eyebrow">Faith · Education · Mission</span>
-              <p className="welcome-script">Welcome, Jacques</p>
+              <p className="welcome-script">Murakaza neza</p>
               <h1>
                 Learn with purpose.
                 <span>Lead with faith.</span>
@@ -416,6 +411,7 @@ export default function App() {
                   <div className="image-scrim" />
                   <LiquidButton
                     variant={module.tone === "green" ? "green" : "light"}
+                    onClick={() => navigate(module.path)}
                   >
                     Open
                   </LiquidButton>
@@ -464,7 +460,7 @@ export default function App() {
                 <b>03</b> Service
               </span>
             </div>
-            <LiquidButton variant="green">Discover our mission</LiquidButton>
+            <LiquidButton variant="green" onClick={() => navigate("/app")}>Discover our mission</LiquidButton>
           </div>
         </section>
       </main>
@@ -478,8 +474,8 @@ export default function App() {
           <span>
             <Icon name="pin" /> Rwanda
           </span>
-          <span>Privacy</span>
-          <span>Help center</span>
+          <Link to="/privacy">Privacy</Link>
+          <Link to="/help">Help center</Link>
         </div>
         <p className="footer-verse">“For God and for His people.”</p>
       </footer>

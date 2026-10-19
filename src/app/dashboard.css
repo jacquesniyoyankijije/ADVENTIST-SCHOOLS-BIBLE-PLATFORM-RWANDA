@@ -215,3 +215,5 @@ tbody tr:hover { background:#fafcfd }.name-cell { display:flex; align-items:cent
   .reader-toolbar { gap:8px; flex-direction:column }.scripture { min-height:auto; padding:35px 22px }.reader-footer { position:sticky; bottom:0 }.messaging-layout { min-height:650px; grid-template-columns:75px 1fr }.conversation-list>.inline-search { display:none }.conversation-list>button { padding:10px; grid-template-columns:1fr; justify-items:center }.conversation-list>button>span:nth-child(2),.conversation-list time { display:none }.chat-messages { padding:15px }.chat-messages p { max-width:88% }
   .form-grid { grid-template-columns:1fr }.settings-form { padding:17px }.announcement-feed { gap:10px }.table-footer>span { display:none }.table-footer { justify-content:flex-end }.app-toast { right:14px;bottom:14px;left:14px }.auth-panel { padding:24px }.auth-card>h2 { font-size:26px }.auth-mobile-logo .platform-logo small { color:var(--muted) }
 }
+
+.sidebar-help { text-decoration: none; color: inherit; }
