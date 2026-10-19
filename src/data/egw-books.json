@@ -1,0 +1,42 @@
+[
+  {
+    "file": "/books/Acts-of-the-Apostles.pdf",
+    "title": "The Acts of the Apostles (1911)",
+    "pages": 409,
+    "size_kb": 1246,
+    "preview": "Preview text not available in this PDF. Open the reader to start reading.",
+    "verified": true
+  },
+  {
+    "file": "/books/Patriarchs-and-Prophets.pdf",
+    "title": "Patriarchs and Prophets (1890)",
+    "pages": 707,
+    "size_kb": 2070,
+    "preview": "Preview text not available in this PDF. Open the reader to start reading.",
+    "verified": true
+  },
+  {
+    "file": "/books/Prophets-and-Kings.pdf",
+    "title": "Prophets and Kings (1917)",
+    "pages": 884,
+    "size_kb": 1784,
+    "preview": "Preview text not available in this PDF. Open the reader to start reading.",
+    "verified": true
+  },
+  {
+    "file": "/books/Steps-to-Christ.pdf",
+    "title": "Steps to Christ (1892) Version 111",
+    "pages": 128,
+    "size_kb": 805,
+    "preview": "Preview text not available in this PDF. Open the reader to start reading.",
+    "verified": true
+  },
+  {
+    "file": "/books/The-Great-Controversy.pdf",
+    "title": "The Great Controversy (1911)",
+    "pages": 603,
+    "size_kb": 1851,
+    "preview": "Preview text not available in this PDF. Open the reader to start reading.",
+    "verified": true
+  }
+]

@@ -1,7 +1,13 @@
-import { useMemo, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { useOutletContext, useParams } from "react-router"
 import type { AppContext } from "../components/DashboardLayout"
 import { Icon, type IconName } from "../components/Icons"
+import {
+  addEgwBook,
+  listEgwBooks,
+  removeEgwBook,
+  type EgwBook,
+} from "../../services/library"
 import {
   announcements,
   navigation,
@@ -249,48 +255,105 @@ function BibleReader() {
   )
 }
 
-const libraryBooks = [
-  {
-    title: "The Desire of Ages",
-    category: "Life of Christ",
-    progress: 68,
-    image:
-      "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=500&q=80",
-  },
-  {
-    title: "Education",
-    category: "Christian education",
-    progress: 42,
-    image:
-      "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=500&q=80",
-  },
-  {
-    title: "Steps to Christ",
-    category: "Spiritual growth",
-    progress: 91,
-    image:
-      "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=500&q=80",
-  },
-  {
-    title: "The Great Controversy",
-    category: "Church history",
-    progress: 17,
-    image:
-      "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=500&q=80",
-  },
-]
+const defaultProgress: Record<string, number> = {
+  "Patriarchs and Prophets (1890)": 23,
+  "Prophets and Kings (1917)": 8,
+  "The Acts of the Apostles (1911)": 41,
+  "The Great Controversy (1911)": 17,
+  "Steps to Christ (1892) Version 111": 91,
+}
+
+function BookCover({ book }: { book: EgwBook }) {
+  return (
+    <div className="book-cover">
+      <span className="book-cover-mark">
+        <Icon name="library" />
+      </span>
+      <strong>{book.title}</strong>
+      <small>Ellen G. White</small>
+    </div>
+  )
+}
+
+function BookPreviewModal({
+  book,
+  onClose,
+}: {
+  book: EgwBook | null
+  onClose: () => void
+}) {
+  if (!book) return null
+  const pdf = book.file ?? book.sourceUrl
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div
+        className="app-modal book-modal"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header>
+          <div>
+            <strong>{book.title}</strong>
+            <small>
+              {book.pages || "?"} pages
+              {book.sizeKb
+                ? ` · ${Math.round(book.sizeKb / 102.4) / 10} MB`
+                : ""}{" "}
+              · {book.verified ? "Verified" : "Pending verification"}
+            </small>
+          </div>
+          <div className="book-modal-actions">
+            {pdf && (
+              <a
+                className="primary-action"
+                href={pdf}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Download PDF <Icon name="arrow" />
+              </a>
+            )}
+            <button
+              className="round-action"
+              onClick={onClose}
+              type="button"
+              aria-label="Close preview"
+            >
+              ✕
+            </button>
+          </div>
+        </header>
+        {pdf ? (
+          <iframe title={`${book.title} preview`} src={pdf} />
+        ) : (
+          <p className="book-modal-fallback">{book.preview}</p>
+        )}
+        <footer>{book.preview}</footer>
+      </div>
+    </div>
+  )
+}
 
 function LibraryPage() {
   const [query, setQuery] = useState("")
-  const filtered = libraryBooks.filter((book) =>
-    book.title.toLowerCase().includes(query.toLowerCase()),
+  const [books, setBooks] = useState<EgwBook[]>(() => listEgwBooks())
+  const [preview, setPreview] = useState<EgwBook | null>(null)
+  const [category, setCategory] = useState("All books")
+
+  // Keep the list fresh when books are managed from the Settings page.
+  useEffect(() => setBooks(listEgwBooks()), [])
+
+  const categories = ["All books", ...new Set(books.map((b) => b.category))]
+  const filtered = books.filter(
+    (book) =>
+      (category === "All books" || book.category === category) &&
+      book.title.toLowerCase().includes(query.toLowerCase()),
   )
   return (
     <div className="page-stack">
       <PageHeader
         eyebrow="Inspired writings"
         title="Ellen G. White Library"
-        description="Discover trusted books, devotionals, and counsel for Christian education."
+        description="Trusted books from the Ellen G. White Estate — verified, readable and downloadable."
         action="Reading list"
         actionIcon="library"
       />
@@ -304,40 +367,68 @@ function LibraryPage() {
           />
         </div>
         <div className="filter-pills">
-          <button className="active" type="button">
-            All books
-          </button>
-          <button type="button">Education</button>
-          <button type="button">Devotionals</button>
-          <button type="button">History</button>
+          {categories.map((item) => (
+            <button
+              className={item === category ? "active" : ""}
+              key={item}
+              onClick={() => setCategory(item)}
+              type="button"
+            >
+              {item}
+            </button>
+          ))}
         </div>
       </div>
       {filtered.length ? (
         <div className="book-grid">
-          {filtered.map((book) => (
-            <article className="book-card panel" key={book.title}>
-              <img src={book.image} alt="" />
-              <div>
-                <span>{book.category}</span>
-                <h2>{book.title}</h2>
-                <p>
-                  Timeless counsel and inspired insight for faith, learning, and
-                  everyday life.
-                </p>
-                <div className="book-progress">
-                  <span style={{ width: `${book.progress}%` }} />
+          {filtered.map((book) => {
+            const progress = defaultProgress[book.title] ?? 0
+            return (
+              <article className="book-card panel" key={book.title}>
+                <BookCover book={book} />
+                <div>
+                  <span>{book.category}</span>
+                  <h2>{book.title}</h2>
+                  <p className="book-preview-text">
+                    {book.preview.slice(0, 150)}…
+                  </p>
+                  <div className="book-meta">
+                    <small>{book.pages || "?"} pages</small>
+                    <em
+                      className={
+                        book.verified ? "badge-verified" : "badge-pending"
+                      }
+                    >
+                      {book.verified ? "Verified" : "Pending"}
+                    </em>
+                  </div>
+                  <div className="book-progress">
+                    <span style={{ width: `${progress}%` }} />
+                  </div>
+                  <small>{progress}% complete</small>
+                  <div className="book-actions">
+                    <button onClick={() => setPreview(book)} type="button">
+                      Preview <Icon name="eye" />
+                    </button>
+                    {(book.file ?? book.sourceUrl) && (
+                      <a
+                        href={book.file ?? book.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Download <Icon name="arrow" />
+                      </a>
+                    )}
+                  </div>
                 </div>
-                <small>{book.progress}% complete</small>
-                <button type="button">
-                  Continue reading <Icon name="arrow" />
-                </button>
-              </div>
-            </article>
-          ))}
+              </article>
+            )
+          })}
         </div>
       ) : (
         <StatePanel state="empty" retry={() => setQuery("")} />
       )}
+      <BookPreviewModal book={preview} onClose={() => setPreview(null)} />
     </div>
   )
 }
@@ -980,6 +1071,127 @@ function NotificationsPage() {
   )
 }
 
+function EgwLibraryManager() {
+  const { notify } = useOutletContext<AppContext>()
+  const [books, setBooks] = useState<EgwBook[]>(() => listEgwBooks())
+  const [title, setTitle] = useState("")
+  const [category, setCategory] = useState("")
+  const [url, setUrl] = useState("")
+  const [busy, setBusy] = useState(false)
+
+  async function add(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    const result = await addEgwBook(title, url, category)
+    setBusy(false)
+    notify(result.message, result.ok ? "success" : "error")
+    if (result.ok) {
+      setTitle("")
+      setCategory("")
+      setUrl("")
+      setBooks(listEgwBooks())
+    }
+  }
+
+  function remove(book: EgwBook) {
+    removeEgwBook(book.title)
+    setBooks(listEgwBooks())
+    notify(`"${book.title}" removed from the library`)
+  }
+
+  return (
+    <section className="panel settings-form egw-manager">
+      <div className="form-section">
+        <h2>Ellen G. White Library</h2>
+        <p>
+          Every book is verified automatically when it is added: the PDF must
+          be reachable from the browser and start with a valid PDF header. The
+          page count and file size are recorded with it.
+        </p>
+        <table className="egw-table">
+          <thead>
+            <tr>
+              <th>Book</th>
+              <th>Category</th>
+              <th>Pages</th>
+              <th>Size</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {books.map((book) => (
+              <tr key={book.title}>
+                <td>
+                  <strong>{book.title}</strong>
+                </td>
+                <td>{book.category}</td>
+                <td>{book.pages || "—"}</td>
+                <td>{book.sizeKb ? `${Math.round(book.sizeKb / 102.4) / 10} MB` : "—"}</td>
+                <td>
+                  <em className={book.verified ? "badge-verified" : "badge-pending"}>
+                    {book.verified ? "Verified" : "Pending"}
+                  </em>
+                </td>
+                <td className="egw-actions">
+                  {book.file && (
+                    <a href={book.file} target="_blank" rel="noreferrer">
+                      Open
+                    </a>
+                  )}
+                  {book.sourceUrl && !book.file && (
+                    <a href={book.sourceUrl} target="_blank" rel="noreferrer">
+                      Open
+                    </a>
+                  )}
+                  {book.origin === "local" && (
+                    <button onClick={() => remove(book)} type="button">
+                      Remove
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="form-section">
+        <h3>Add a book</h3>
+        <div className="form-grid">
+          <label>
+            Book title
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="e.g. The Desire of Ages"
+            />
+          </label>
+          <label>
+            Category
+            <input
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              placeholder="e.g. Devotional"
+            />
+          </label>
+        </div>
+        <label>
+          PDF address
+          <input
+            value={url}
+            onChange={(event) => setUrl(event.target.value)}
+            placeholder="https://example.org/book.pdf"
+            type="url"
+          />
+        </label>
+        <button className="primary-action" disabled={busy} onClick={add} type="button">
+          {busy ? "Verifying…" : "Add and verify automatically"}
+        </button>
+      </div>
+    </section>
+  )
+}
+
 function SettingsPage({ profile = false }: { profile?: boolean }) {
   const { notify, role } = useOutletContext<AppContext>()
   const [emailNotices, setEmailNotices] = useState(true)
@@ -1076,6 +1288,7 @@ function SettingsPage({ profile = false }: { profile?: boolean }) {
           </button>
         </form>
       </div>
+      {!profile && <EgwLibraryManager />}
     </div>
   )
 }
