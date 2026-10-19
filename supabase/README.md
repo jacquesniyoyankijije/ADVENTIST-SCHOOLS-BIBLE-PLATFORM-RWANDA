@@ -43,3 +43,11 @@ Only a trusted project owner should run the promotion SQL. Do not add a browser 
 - The profile trigger blocks users from changing their own role or school assignment.
 - Migration 0003 adds the student results, discipline and finance tables with carefully scoped RLS policies; review them before using real records.
 - Apply later migrations only after reviewing them and keeping a safe copy of important data.
+
+## Optional: sample data
+
+To load illustrative sample records (5 fields, 8 schools, classes, 20
+students, results, discipline incidents, fee invoices and payments, Bible
+chapters from the KJV, lessons, EGW links and announcements), run
+`supabase/seed.sql` in the SQL Editor. It is safe to re-run — it skips
+itself if student records already exist.
