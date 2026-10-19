@@ -2,41 +2,46 @@
   {
     "file": "/books/Acts-of-the-Apostles.pdf",
     "title": "The Acts of the Apostles (1911)",
+    "category": "Early church history",
     "pages": 409,
     "size_kb": 1246,
-    "preview": "Preview text not available in this PDF. Open the reader to start reading.",
+    "preview": "Preface The fifth book of the New Testament has been known from ancient times as The Acts of the Apostles; but this title cannot be found in the book itself. One of the earliest manuscripts, the Codex Sinaiticus, gives as the title the simple word Acts, with n",
     "verified": true
   },
   {
     "file": "/books/Patriarchs-and-Prophets.pdf",
     "title": "Patriarchs and Prophets (1890)",
+    "category": "Old Testament history",
     "pages": 707,
     "size_kb": 2070,
-    "preview": "Preview text not available in this PDF. Open the reader to start reading.",
+    "preview": "Preface The publishers send out this work from a conviction that it throws light upon a subject of paramount importance and universal inter- est, and one on which light is to be greatly desired; that it presents truths too little known or too widely ignored. T",
     "verified": true
   },
   {
     "file": "/books/Prophets-and-Kings.pdf",
     "title": "Prophets and Kings (1917)",
+    "category": "Old Testament history",
     "pages": 884,
     "size_kb": 1784,
-    "preview": "Preview text not available in this PDF. Open the reader to start reading.",
+    "preview": "Foreword The Story of Prophets and Kings is the second in a series of five outstanding volumes spanning sacred history. It was, however, the last book of the series to be written, and the last of many rich works to come from the gifted pen of Ellen G. White. T",
     "verified": true
   },
   {
     "file": "/books/Steps-to-Christ.pdf",
     "title": "Steps to Christ (1892) Version 111",
+    "category": "Devotional",
     "pages": 128,
     "size_kb": 805,
-    "preview": "Preview text not available in this PDF. Open the reader to start reading.",
+    "preview": "Foreword Few books attain a distribution reckoned in millions or exert so great an in\ufb02uence in the uplifting of humanity as has Steps to Christ. In countless editions, this little volume has been printed in more than seventy languages, bringing inspiration to ",
     "verified": true
   },
   {
     "file": "/books/The-Great-Controversy.pdf",
     "title": "The Great Controversy (1911)",
+    "category": "Church history",
     "pages": 603,
     "size_kb": 1851,
-    "preview": "Preview text not available in this PDF. Open the reader to start reading.",
+    "preview": "Preface This book, reader, is not published to tell us that there is sin and woe and misery in this world. We know it all too well. This book is not published to tell us that there is an irreconcilable controversy between darkness and light, sin and righteousn",
     "verified": true
   }
 ]
