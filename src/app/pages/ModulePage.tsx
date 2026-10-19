@@ -261,6 +261,11 @@ const defaultProgress: Record<string, number> = {
   "The Acts of the Apostles (1911)": 41,
   "The Great Controversy (1911)": 17,
   "Steps to Christ (1892) Version 111": 91,
+  "The Ministry of Healing (1905)": 34,
+  "Healthful Living (1897)": 12,
+  "Counsels on Health (1923)": 5,
+  "Ellen G. White: The Early Years: 1827-1862 (vol. 1) (1985)": 0,
+  "Life Sketches of Ellen G. White (1915)": 21,
 }
 
 function BookCover({ book }: { book: EgwBook }) {
@@ -1194,8 +1199,28 @@ function EgwLibraryManager() {
 
 function SettingsPage({ profile = false }: { profile?: boolean }) {
   const { notify, role } = useOutletContext<AppContext>()
+  const [tab, setTab] = useState(profile ? "profile" : "general")
   const [emailNotices, setEmailNotices] = useState(true)
   const [weekly, setWeekly] = useState(true)
+  const [twoFactor, setTwoFactor] = useState(false)
+  const [sessions, setSessions] = useState([
+    { device: "This browser · Kigali", current: true, when: "Active now" },
+    { device: "Android · Bible Reader app", current: false, when: "2 days ago" },
+  ])
+
+  const tabs = profile
+    ? [
+        { id: "profile", label: "Profile details", icon: "profile" },
+        { id: "notifications", label: "Notifications", icon: "bell" },
+        { id: "security", label: "Security", icon: "shield" },
+      ]
+    : [
+        { id: "general", label: "General", icon: "settings" },
+        { id: "notifications", label: "Notifications", icon: "bell" },
+        { id: "security", label: "Security", icon: "shield" },
+        { id: "library", label: "Ellen G. White Library", icon: "library" },
+      ]
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -1204,91 +1229,175 @@ function SettingsPage({ profile = false }: { profile?: boolean }) {
         description={
           profile
             ? "Keep your identity and contact information up to date."
-            : "Configure your workspace, notifications, and security preferences."
+            : "Configure your workspace, notifications, security, and library."
         }
       />
       <div className="settings-grid">
         <aside className="panel settings-nav">
-          <button className="active" type="button">
-            <Icon name={profile ? "profile" : "settings"} />
-            {profile ? "Profile details" : "General"}
-          </button>
-          <button type="button">
-            <Icon name="bell" />
-            Notifications
-          </button>
-          <button type="button">
-            <Icon name="shield" />
-            Security
-          </button>
+          {tabs.map((item) => (
+            <button
+              className={tab === item.id ? "active" : ""}
+              key={item.id}
+              onClick={() => setTab(item.id)}
+              type="button"
+            >
+              <Icon name={item.icon as IconName} />
+              {item.label}
+            </button>
+          ))}
         </aside>
-        <form
-          className="panel settings-form"
-          onSubmit={(event) => {
-            event.preventDefault()
-            notify("Settings saved successfully")
-          }}
-        >
-          <div className="form-section">
-            <h2>{profile ? "Profile details" : "Organization details"}</h2>
-            <p>These details are visible across your permitted workspace.</p>
-            <div className="form-grid">
-              <label>
-                {profile ? "Full name" : "Organization name"}
+
+        {tab === (profile ? "profile" : "general") && (
+          <form
+            className="panel settings-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              notify(profile ? "Profile updated" : "Settings saved successfully")
+            }}
+          >
+            <div className="form-section">
+              <h2>{profile ? "Profile details" : "Organization details"}</h2>
+              <p>These details are visible across your permitted workspace.</p>
+              <div className="form-grid">
+                <label>
+                  {profile ? "Full name" : "Organization name"}
+                  <input
+                    defaultValue={
+                      profile ? "Niyoyankijije Jacques" : "Rwanda Union Mission"
+                    }
+                  />
+                </label>
+                <label>
+                  {profile ? "Role" : "Country"}
+                  <input
+                    defaultValue={profile ? role : "Rwanda"}
+                    readOnly={profile}
+                  />
+                </label>
+                <label>
+                  Email address
+                  <input defaultValue="admin@adventist.rw" type="email" />
+                </label>
+                <label>
+                  Phone number
+                  <input defaultValue="+250 788 123 456" />
+                </label>
+              </div>
+            </div>
+            <button className="primary-action" type="submit">
+              Save changes
+            </button>
+          </form>
+        )}
+
+        {tab === "notifications" && (
+          <form
+            className="panel settings-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              notify("Notification preferences saved")
+            }}
+          >
+            <div className="form-section">
+              <h2>Notifications</h2>
+              <p>Choose how the platform keeps you informed.</p>
+              <label className="switch-row">
+                <span>
+                  <strong>Email notifications</strong>
+                  <small>Receive important activity by email</small>
+                </span>
                 <input
-                  defaultValue={
-                    profile ? "Niyoyankijije Jacques" : "Rwanda Union Mission"
-                  }
+                  checked={emailNotices}
+                  onChange={() => setEmailNotices(!emailNotices)}
+                  type="checkbox"
                 />
               </label>
-              <label>
-                {profile ? "Role" : "Country"}
+              <label className="switch-row">
+                <span>
+                  <strong>Weekly digest</strong>
+                  <small>A summary every Monday morning</small>
+                </span>
                 <input
-                  defaultValue={profile ? role : "Rwanda"}
-                  readOnly={profile}
+                  checked={weekly}
+                  onChange={() => setWeekly(!weekly)}
+                  type="checkbox"
                 />
-              </label>
-              <label>
-                Email address
-                <input defaultValue="admin@adventist.rw" type="email" />
-              </label>
-              <label>
-                Phone number
-                <input defaultValue="+250 788 123 456" />
               </label>
             </div>
-          </div>
-          <div className="form-section">
-            <h2>Notifications</h2>
-            <label className="switch-row">
-              <span>
-                <strong>Email notifications</strong>
-                <small>Receive important activity by email</small>
-              </span>
-              <input
-                checked={emailNotices}
-                onChange={() => setEmailNotices(!emailNotices)}
-                type="checkbox"
-              />
-            </label>
-            <label className="switch-row">
-              <span>
-                <strong>Weekly digest</strong>
-                <small>A summary every Monday morning</small>
-              </span>
-              <input
-                checked={weekly}
-                onChange={() => setWeekly(!weekly)}
-                type="checkbox"
-              />
-            </label>
-          </div>
-          <button className="primary-action" type="submit">
-            Save changes
-          </button>
-        </form>
+            <button className="primary-action" type="submit">
+              Save preferences
+            </button>
+          </form>
+        )}
+
+        {tab === "security" && (
+          <form
+            className="panel settings-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              notify("Security settings updated")
+            }}
+          >
+            <div className="form-section">
+              <h2>Password</h2>
+              <p>Choose a strong password you do not use anywhere else.</p>
+              <div className="form-grid">
+                <label>
+                  Current password
+                  <input placeholder="••••••••" type="password" />
+                </label>
+                <label>
+                  New password
+                  <input placeholder="At least 8 characters" type="password" />
+                </label>
+              </div>
+            </div>
+            <div className="form-section">
+              <h2>Two-step verification</h2>
+              <label className="switch-row">
+                <span>
+                  <strong>Require a second step at sign-in</strong>
+                  <small>An extra code when you sign in on a new device</small>
+                </span>
+                <input
+                  checked={twoFactor}
+                  onChange={() => setTwoFactor(!twoFactor)}
+                  type="checkbox"
+                />
+              </label>
+            </div>
+            <div className="form-section">
+              <h2>Active sessions</h2>
+              <ul className="session-list">
+                {sessions.map((session, index) => (
+                  <li key={session.device}>
+                    <span>
+                      <strong>{session.device}</strong>
+                      <small>{session.when}</small>
+                    </span>
+                    {!session.current && (
+                      <button
+                        onClick={() => {
+                          setSessions(sessions.filter((_, i) => i !== index))
+                          notify("Session signed out")
+                        }}
+                        type="button"
+                      >
+                        Sign out
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button className="primary-action" type="submit">
+              Update security
+            </button>
+          </form>
+        )}
+
+        {tab === "library" && <EgwLibraryManager />}
       </div>
-      {!profile && <EgwLibraryManager />}
     </div>
   )
 }

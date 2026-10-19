@@ -9,6 +9,42 @@
     "verified": true
   },
   {
+    "file": "/books/Counsels-on-Health.pdf",
+    "title": "Counsels on Health (1923)",
+    "category": "Health",
+    "pages": 665,
+    "size_kb": 1616,
+    "preview": "Preface In the lobby of the White Memorial Hospital, which was founded in memory of the writer of the \u201cCounsels\u201d which compose this book, is a bronze tablet bearing the inscription: \u201cThis hospital is dedicated to the memory of Ellen Gould White, whose long lif",
+    "verified": true
+  },
+  {
+    "file": "/books/Ellen-G-White-The-Early-Years.pdf",
+    "title": "Ellen G. White: The Early Years: 1827-1862 (vol. 1) (1985)",
+    "category": "About Ellen G. White",
+    "pages": 540,
+    "size_kb": 1524,
+    "preview": "iv Ellen G. White: The Early Years: 1827-1862 (vol. 1) The 1845 Expectancy of the Second Advent . . . . . . . . . . . . 112 The Second Visit to Massachusetts . . . . . . . . . . . . . . . . . . . . 114 Otis Nichols\u2019 Eyewitness Account . . . . . . . . . . . . ",
+    "verified": true
+  },
+  {
+    "file": "/books/Healthful-Living.pdf",
+    "title": "Healthful Living (1897)",
+    "category": "Health",
+    "pages": 258,
+    "size_kb": 903,
+    "preview": "Preface The purpose of this little work is to present in the most concise and condensed form possible the various teachings upon the subjects of health, health reform, and allied matters, which are to be found in the writings of Mrs. E. G. White. The numerous ",
+    "verified": true
+  },
+  {
+    "file": "/books/Life-Sketches.pdf",
+    "title": "Life Sketches of Ellen G. White (1915)",
+    "category": "About Ellen G. White",
+    "pages": 396,
+    "size_kb": 1257,
+    "preview": "Preface The story of the early Christian experience and public labors of Mrs. Ellen G. White was first printed in the year 1860, in a little volume of three hundred pages, entitled, \u201cMy Christian Experience, Views, and Labors, in Connection With the Rise and P",
+    "verified": true
+  },
+  {
     "file": "/books/Patriarchs-and-Prophets.pdf",
     "title": "Patriarchs and Prophets (1890)",
     "category": "Old Testament history",
@@ -42,6 +78,15 @@
     "pages": 603,
     "size_kb": 1851,
     "preview": "Preface This book, reader, is not published to tell us that there is sin and woe and misery in this world. We know it all too well. This book is not published to tell us that there is an irreconcilable controversy between darkness and light, sin and righteousn",
+    "verified": true
+  },
+  {
+    "file": "/books/The-Ministry-of-Healing.pdf",
+    "title": "The Ministry of Healing (1905)",
+    "category": "Health",
+    "pages": 367,
+    "size_kb": 1137,
+    "preview": "Preface The world is sick, and wherever the children of men dwell, suffering abounds. On every hand there is a seeking for relief. It is not the Creator\u2019s purpose that mankind shall be weighed down with a burden of pain, that his activities shall be curtailed ",
     "verified": true
   }
 ]

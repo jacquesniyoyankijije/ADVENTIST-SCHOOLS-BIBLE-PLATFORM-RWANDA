@@ -257,3 +257,9 @@ tbody tr:hover { background:#fafcfd }.name-cell { display:flex; align-items:cent
 }
 
 .sidebar-help { text-decoration: none; color: inherit; }
+.session-list { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:10px }
+.session-list li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid var(--line); border-radius:11px }
+.session-list li span { display:flex; flex-direction:column; gap:3px }
+.session-list li strong { font-size:10.5px }
+.session-list li small { color:var(--muted); font-size:8.5px }
+.session-list li button { border:0; padding:7px 12px; border-radius:8px; color:#b4232f; background:#fdeceb; font-size:8.5px; font-weight:700; cursor:pointer }
