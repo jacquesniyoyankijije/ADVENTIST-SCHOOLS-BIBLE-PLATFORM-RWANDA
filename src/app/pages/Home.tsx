@@ -110,12 +110,16 @@ function LiquidButton({
   )
 }
 
-const navItems: { label: string; icon: IconName; href: string }[] = [
-  { label: "Home", icon: "home", href: "#home" },
-  { label: "Bible", icon: "book", href: "#modules" },
-  { label: "Ellen G. White", icon: "library", href: "#modules" },
-  { label: "Communication", icon: "chat", href: "#community" },
-  { label: "Schools", icon: "school", href: "#modules" },
+function scrollToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
+}
+
+const navItems: { label: string; icon: IconName; section: string }[] = [
+  { label: "Home", icon: "home", section: "home" },
+  { label: "Bible", icon: "book", section: "modules" },
+  { label: "Ellen G. White", icon: "library", section: "modules" },
+  { label: "Communication", icon: "chat", section: "community" },
+  { label: "Schools", icon: "school", section: "modules" },
 ]
 
 const modules: {
@@ -190,7 +194,12 @@ export default function App() {
     <div className="site-shell">
       <header className="site-header">
         <div className="header-inner">
-          <a className="brand-link" href="#home" aria-label="Go to home">
+          <button
+            className="brand-link"
+            onClick={() => scrollToSection("home")}
+            aria-label="Go to home"
+            type="button"
+          >
             <ChurchMark />
             <span className="brand-divider" />
             <span className="platform-name">
@@ -198,18 +207,19 @@ export default function App() {
               <strong>Bible Platform</strong>
               <small>Learn · Grow · Serve</small>
             </span>
-          </a>
+          </button>
 
           <nav className="desktop-nav" aria-label="Main navigation">
             {navItems.map((item, index) => (
-              <a
+              <button
                 className={index === 0 ? "active" : ""}
-                href={item.href}
+                onClick={() => scrollToSection(item.section)}
                 key={item.label}
+                type="button"
               >
                 <Icon name={item.icon} />
                 <span>{item.label}</span>
-              </a>
+              </button>
             ))}
           </nav>
 
@@ -267,14 +277,17 @@ export default function App() {
         {menuOpen && (
           <nav className="mobile-nav" aria-label="Mobile navigation">
             {navItems.map((item) => (
-              <a
-                href={item.href}
+              <button
                 key={item.label}
-                onClick={() => setMenuOpen(false)}
+                onClick={() => {
+                  setMenuOpen(false)
+                  scrollToSection(item.section)
+                }}
+                type="button"
               >
                 <Icon name={item.icon} />
                 {item.label}
-              </a>
+              </button>
             ))}
           </nav>
         )}

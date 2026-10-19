@@ -81,9 +81,13 @@ img {
   display: flex;
   align-items: center;
   gap: 18px;
+  padding: 0;
+  border: 0;
+  background: none;
   color: inherit;
   text-decoration: none;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .brand-mark {
@@ -137,7 +141,7 @@ img {
   align-items: stretch;
 }
 
-.desktop-nav a {
+.desktop-nav a, .desktop-nav button {
   position: relative;
   padding: 0 13px;
   display: flex;
@@ -149,7 +153,7 @@ img {
   transition: color 180ms ease, background 180ms ease;
 }
 
-.desktop-nav a::after {
+.desktop-nav a::after, .desktop-nav button::after {
   position: absolute;
   right: 14px;
   bottom: 0;
@@ -163,14 +167,14 @@ img {
   transition: 180ms ease;
 }
 
-.desktop-nav a:hover,
-.desktop-nav a.active {
+.desktop-nav a:hover, .desktop-nav button:hover,
+.desktop-nav a.active, .desktop-nav button.active {
   color: white;
   background: rgba(255, 255, 255, 0.05);
 }
 
-.desktop-nav a:hover::after,
-.desktop-nav a.active::after {
+.desktop-nav a:hover::after, .desktop-nav button:hover::after,
+.desktop-nav a.active::after, .desktop-nav button.active::after {
   opacity: 1;
   transform: scaleX(1);
 }
@@ -1102,7 +1106,7 @@ a:focus-visible {
     display: none;
   }
 
-  .desktop-nav a {
+  .desktop-nav a, .desktop-nav button {
     padding: 0 9px;
     font-size: 11px;
   }
@@ -1161,8 +1165,9 @@ a:focus-visible {
     background: var(--navy-950);
   }
 
-  .mobile-nav a {
+  .mobile-nav a, .mobile-nav button {
     padding: 13px;
+    width: 100%;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 13px;
     display: flex;

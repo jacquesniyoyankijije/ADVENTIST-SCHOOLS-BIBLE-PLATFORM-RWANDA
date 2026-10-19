@@ -1,6 +1,6 @@
-import { createBrowserRouter } from "react-router"
+import { createHashRouter } from "react-router"
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: "/",
     lazy: async () => ({ Component: (await import("./pages/Home")).default }),

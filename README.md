@@ -27,7 +27,11 @@ data modules switch to live queries once the backend is connected.
 
 - Vite + React 19 + TypeScript
 - Tailwind CSS 4 with custom design tokens (navy, teal, gold)
-- React Router 7 (SPA — Render rewrites all routes to `index.html`)
+- React Router 7 in hash mode (`/#/app/...`) so deep links work on any
+  static host without a server rewrite rule. To switch to clean URLs
+  (`/app/...`), add a Render rewrite of `/*` to `/index.html`
+  (Dashboard → Settings → Redirects/Rewrites) and change
+  `createHashRouter` back to `createBrowserRouter` in `src/app/routes.tsx`.
 - Supabase JS client, pre-wired for auth (demo mode when unconfigured)
 - Supabase SQL migrations define the full database schema with RLS
 
