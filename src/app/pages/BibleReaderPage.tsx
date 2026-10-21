@@ -1,14 +1,24 @@
 import { useEffect, useMemo, useState } from "react"
 import { Icon } from "../components/Icons"
-import type { BibleBook } from "../../data/kjv"
+import {
+  KJV_INDEX,
+  CHAPTER_COUNTS,
+  BOOK_COUNT,
+  loadBookChapters,
+} from "../../data/kjv-index"
 
 const FONT_STORAGE_KEY = "asbp_reader_font"
 const PROGRESS_STORAGE_KEY = "asbp_reader_progress"
 
+type LoadedBooks = Record<string, string[][]>
+
 export function BibleReader() {
-  const [kjvData, setKjvData] = useState<BibleBook[] | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<boolean>(false)
+  // Book texts load on demand, one small chunk per book, so the reader
+  // opens instantly even on slow connections.
+  const [bookChapters, setBookChapters] = useState<LoadedBooks>({})
+  const [loadingBook, setLoadingBook] = useState<string | null>(null)
+  const [failedBook, setFailedBook] = useState<string | null>(null)
+  const [retryToken, setRetryToken] = useState<number>(0)
 
   const [bookQuery, setBookQuery] = useState<string>("")
   const [verseQuery, setVerseQuery] = useState<string>("")
@@ -41,30 +51,55 @@ export function BibleReader() {
     return {}
   })
 
+  // Load the selected book's chapters when they are not in memory yet.
   useEffect(() => {
     let isMounted = true
-    setLoading(true)
-    setError(false)
-
-    import("../../data/kjv")
-      .then((mod) => {
-        if (isMounted) {
-          setKjvData(mod.KJV)
-          setLoading(false)
-        }
+    if (bookChapters[activeBookName]) {
+      setLoadingBook(null)
+      setFailedBook(null)
+      return
+    }
+    setLoadingBook(activeBookName)
+    setFailedBook(null)
+    loadBookChapters(activeBookName)
+      .then((chapters) => {
+        if (!isMounted) return
+        setBookChapters((prev) => ({ ...prev, [activeBookName]: chapters }))
+        setLoadingBook(null)
       })
       .catch((err) => {
-        console.error("Failed to load KJV data:", err)
-        if (isMounted) {
-          setError(true)
-          setLoading(false)
-        }
+        console.error(`Failed to load ${activeBookName}:`, err)
+        if (!isMounted) return
+        setFailedBook(activeBookName)
+        setLoadingBook(null)
       })
-
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [activeBookName, retryToken, bookChapters])
+
+  // Verse search works across loaded books; when the visitor searches,
+  // load every remaining book in the background so results are complete.
+  useEffect(() => {
+    const q = verseQuery.trim().length
+    if (q < 2) return
+    const missing = KJV_INDEX.filter((book) => !bookChapters[book.name])
+    if (missing.length === 0) return
+    let isMounted = true
+    missing.forEach((book) => {
+      loadBookChapters(book.name)
+        .then((chapters) => {
+          if (!isMounted) return
+          setBookChapters((prev) => ({ ...prev, [book.name]: chapters }))
+        })
+        .catch(() => {
+          // One missing book should not break the whole search.
+        })
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [verseQuery, bookChapters])
 
   useEffect(() => {
     try {
@@ -97,30 +132,30 @@ export function BibleReader() {
     }
   }
 
-  const activeBookIndex = useMemo(() => {
-    if (!kjvData) return -1
-    return kjvData.findIndex((b) => b.name === activeBookName)
-  }, [kjvData, activeBookName])
+  const activeBookIndex = useMemo(
+    () => KJV_INDEX.findIndex((b) => b.name === activeBookName),
+    [activeBookName],
+  )
 
-  const activeBook = useMemo(() => {
-    if (!kjvData || activeBookIndex === -1) return null
-    return kjvData[activeBookIndex]
-  }, [kjvData, activeBookIndex])
+  const activeChapterCount = CHAPTER_COUNTS[activeBookName] || 1
 
   const filteredBooks = useMemo(() => {
-    if (!kjvData) return []
     const q = bookQuery.trim().toLowerCase()
-    if (!q) return kjvData
-    return kjvData.filter((b) => b.name.toLowerCase().includes(q))
-  }, [kjvData, bookQuery])
+    if (!q) return KJV_INDEX
+    return KJV_INDEX.filter((b) => b.name.toLowerCase().includes(q))
+  }, [bookQuery])
+
+  const loadedCount = Object.keys(bookChapters).length
 
   const verseSearchResults = useMemo(() => {
     const q = verseQuery.trim().toLowerCase()
-    if (!q || q.length < 2 || !kjvData) return []
+    if (!q || q.length < 2) return []
     const results: { book: string; chapter: number; verse: number; text: string }[] = []
-    for (const book of kjvData) {
-      for (let cIdx = 0; cIdx < book.chapters.length; cIdx++) {
-        const chapterVerses = book.chapters[cIdx]
+    for (const book of KJV_INDEX) {
+      const chapters = bookChapters[book.name]
+      if (!chapters) continue
+      for (let cIdx = 0; cIdx < chapters.length; cIdx++) {
+        const chapterVerses = chapters[cIdx]
         for (let vIdx = 0; vIdx < chapterVerses.length; vIdx++) {
           const text = chapterVerses[vIdx]
           if (text.toLowerCase().includes(q)) {
@@ -136,26 +171,23 @@ export function BibleReader() {
       }
     }
     return results
-  }, [verseQuery, kjvData])
+  }, [verseQuery, bookChapters])
 
   const handlePrevChapter = () => {
-    if (!kjvData || activeBookIndex === -1) return
     if (activeChapter > 1) {
       handleChapterChange(activeChapter - 1)
     } else if (activeBookIndex > 0) {
-      const prevBook = kjvData[activeBookIndex - 1]
-      const prevBookLastChapter = prevBook.chapters.length
+      const prevBook = KJV_INDEX[activeBookIndex - 1]
       setActiveBookName(prevBook.name)
-      handleChapterChange(prevBookLastChapter)
+      handleChapterChange(prevBook.chapters)
     }
   }
 
   const handleNextChapter = () => {
-    if (!kjvData || !activeBook || activeBookIndex === -1) return
-    if (activeChapter < activeBook.chapters.length) {
+    if (activeChapter < activeChapterCount) {
       handleChapterChange(activeChapter + 1)
-    } else if (activeBookIndex < kjvData.length - 1) {
-      const nextBook = kjvData[activeBookIndex + 1]
+    } else if (activeBookIndex < KJV_INDEX.length - 1) {
+      const nextBook = KJV_INDEX[activeBookIndex + 1]
       setActiveBookName(nextBook.name)
       handleChapterChange(1)
     }
@@ -163,70 +195,9 @@ export function BibleReader() {
 
   const isPrevDisabled = activeBookIndex === 0 && activeChapter === 1
   const isNextDisabled =
-    !!kjvData &&
-    !!activeBook &&
-    activeBookIndex === kjvData.length - 1 &&
-    activeChapter === activeBook.chapters.length
+    activeBookIndex === KJV_INDEX.length - 1 && activeChapter === activeChapterCount
 
-  if (loading) {
-    return (
-      <div className="page-stack">
-        <header className="module-heading">
-          <div>
-            <span className="page-eyebrow">Scripture</span>
-            <h1>Bible Reader</h1>
-            <p>Read, search, and continue your study across every device.</p>
-          </div>
-        </header>
-        <div className="panel state-panel">
-          <span className="large-spinner" />
-          <h2>Loading Bible content…</h2>
-          <p>Preparing the King James Version text.</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !kjvData || !activeBook) {
-    return (
-      <div className="page-stack">
-        <header className="module-heading">
-          <div>
-            <span className="page-eyebrow">Scripture</span>
-            <h1>Bible Reader</h1>
-            <p>Read, search, and continue your study across every device.</p>
-          </div>
-        </header>
-        <div className="panel state-panel error">
-          <span className="state-icon">
-            <Icon name="alert" />
-          </span>
-          <h2>Bible content unavailable</h2>
-          <p>The Bible content could not be loaded. Please check your network connection and try again.</p>
-          <button
-            onClick={() => {
-              setLoading(true)
-              setError(false)
-              import("../../data/kjv")
-                .then((mod) => {
-                  setKjvData(mod.KJV)
-                  setLoading(false)
-                })
-                .catch(() => {
-                  setError(true)
-                  setLoading(false)
-                })
-            }}
-            type="button"
-          >
-            Try again
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  const currentVerses = activeBook.chapters[activeChapter - 1] || []
+  const currentVerses = bookChapters[activeBookName]?.[activeChapter - 1] || []
 
   return (
     <div className="page-stack">
@@ -263,6 +234,11 @@ export function BibleReader() {
               <h3 style={{ margin: "8px 0 6px", fontSize: "11px", color: "var(--muted)" }}>
                 Verses ({verseSearchResults.length})
               </h3>
+              {loadedCount < BOOK_COUNT && (
+                <p style={{ padding: "4px 8px", fontSize: "10px", color: "var(--muted)" }}>
+                  Preparing full-text search… {loadedCount}/{BOOK_COUNT} books loaded
+                </p>
+              )}
               {verseSearchResults.map((res) => (
                 <button
                   key={`${res.book}-${res.chapter}-${res.verse}`}
@@ -302,7 +278,7 @@ export function BibleReader() {
                   </span>
                 </button>
               ))}
-              {verseSearchResults.length === 0 && (
+              {verseSearchResults.length === 0 && loadedCount === BOOK_COUNT && (
                 <p style={{ padding: "8px", fontSize: "11px", color: "var(--muted)" }}>
                   No matching verses
                 </p>
@@ -339,7 +315,7 @@ export function BibleReader() {
                 value={activeBookName}
                 onChange={(event) => handleSelectBook(event.target.value)}
               >
-                {kjvData.map((item) => (
+                {KJV_INDEX.map((item) => (
                   <option key={item.name} value={item.name}>
                     {item.name}
                   </option>
@@ -350,7 +326,7 @@ export function BibleReader() {
                 value={activeChapter}
                 onChange={(event) => handleChapterChange(Number(event.target.value))}
               >
-                {Array.from({ length: activeBook.chapters.length }, (_, index) => (
+                {Array.from({ length: activeChapterCount }, (_, index) => (
                   <option key={index + 1} value={index + 1}>
                     Chapter {index + 1}
                   </option>
@@ -376,18 +352,40 @@ export function BibleReader() {
             </div>
           </div>
 
-          <div className="scripture" style={{ fontSize }}>
-            <span className="page-eyebrow">King James Version (public domain)</span>
-            <h1>
-              {activeBook.name} {activeChapter}
-            </h1>
-            {currentVerses.map((verseText, index) => (
-              <p key={index + 1}>
-                <sup>{index + 1}</sup>
-                {verseText}
+          {failedBook === activeBookName ? (
+            <div className="state-panel error" style={{ padding: "24px", textAlign: "center" }}>
+              <span className="state-icon">
+                <Icon name="alert" />
+              </span>
+              <h2 style={{ fontSize: "16px" }}>{activeBookName} could not load</h2>
+              <p style={{ fontSize: "12px", color: "var(--muted)" }}>
+                Check your network connection and try again.
               </p>
-            ))}
-          </div>
+              <button onClick={() => setRetryToken((token) => token + 1)} type="button">
+                Try again
+              </button>
+            </div>
+          ) : loadingBook === activeBookName && currentVerses.length === 0 ? (
+            <div style={{ padding: "32px", textAlign: "center" }}>
+              <span className="large-spinner" />
+              <p style={{ marginTop: "12px", fontSize: "12px", color: "var(--muted)" }}>
+                Loading {activeBookName}…
+              </p>
+            </div>
+          ) : (
+            <div className="scripture" style={{ fontSize }}>
+              <span className="page-eyebrow">King James Version (public domain)</span>
+              <h1>
+                {activeBookName} {activeChapter}
+              </h1>
+              {currentVerses.map((verseText, index) => (
+                <p key={index + 1}>
+                  <sup>{index + 1}</sup>
+                  {verseText}
+                </p>
+              ))}
+            </div>
+          )}
 
           <footer className="reader-footer">
             <button
@@ -398,7 +396,7 @@ export function BibleReader() {
               ← Previous
             </button>
             <span>
-              {activeBook.name} {activeChapter}
+              {activeBookName} {activeChapter}
             </span>
             <button
               disabled={isNextDisabled}
