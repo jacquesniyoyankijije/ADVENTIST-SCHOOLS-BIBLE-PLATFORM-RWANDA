@@ -35,19 +35,28 @@ export async function signIn(
   return error ? error.message : null
 }
 
-/** Register a new account. Returns an error message or null on success. */
+export type RegisterResult =
+  | { ok: true; needsConfirmation: boolean }
+  | { ok: false; error: string }
+
+/**
+ * Register a new account. When the project requires email confirmation
+ * (the default), no session is created yet and needsConfirmation is true
+ * so the interface can ask the user to check their email.
+ */
 export async function register(
   email: string,
   password: string,
   fullName: string,
-): Promise<string | null> {
-  if (!supabase) return null
-  const { error } = await supabase.auth.signUp({
+): Promise<RegisterResult | null> {
+  if (!supabase) return null // demo mode: caller handles the simulated flow
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { data: { full_name: fullName } },
   })
-  return error ? error.message : null
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, needsConfirmation: !data.session }
 }
 
 /** Sign out of the current session (clears the demo session too). */
@@ -62,13 +71,26 @@ export async function signOut(): Promise<void> {
 
 const DEMO_SESSION_KEY = "asbp_demo_session"
 
-/** Whether a visitor has an active session (live or demo). */
+/**
+ * Whether a visitor has an active session. In live mode only a real
+ * Supabase session counts - a leftover demo flag is ignored and cleared,
+ * so demo authentication can never be confused with real authentication.
+ */
 export async function isSignedIn(): Promise<boolean> {
   if (supabase) {
+    if (localStorage.getItem(DEMO_SESSION_KEY) === "active")
+      localStorage.removeItem(DEMO_SESSION_KEY)
     const { data } = await supabase.auth.getSession()
     return Boolean(data.session)
   }
   return localStorage.getItem(DEMO_SESSION_KEY) === "active"
+}
+
+/** The signed-in Supabase user id, or null. */
+export async function getSessionUserId(): Promise<string | null> {
+  if (!supabase) return null
+  const { data } = await supabase.auth.getSession()
+  return data.session?.user?.id ?? null
 }
 
 /** Marks a simulated session in demo mode (no Supabase configured). */
@@ -139,19 +161,27 @@ export async function signInWithSso(
 
 export type SessionProfile = {
   fullName: string
+  /** Raw role name exactly as stored in public.roles. */
   role: string
   avatarUrl: string | null
   initials: string
 } | null
 
-/** Loads the signed-in user's profile and role from the database. */
+/**
+ * Loads the signed-in user's profile and role from the database, queried
+ * by the exact authenticated user id. Returns null when Supabase is not
+ * configured, nobody is signed in, or the profile row is missing.
+ */
 export async function getSessionProfile(): Promise<SessionProfile> {
   if (!supabase) return null
-  const { data } = await supabase
+  const userId = await getSessionUserId()
+  if (!userId) return null
+  const { data, error } = await supabase
     .from("profiles")
     .select("full_name, avatar_url, roles(name)")
-    .limit(1)
+    .eq("id", userId)
     .maybeSingle()
+  if (error) return null
   if (!data) return null
   const row = data as unknown as {
     full_name: string | null

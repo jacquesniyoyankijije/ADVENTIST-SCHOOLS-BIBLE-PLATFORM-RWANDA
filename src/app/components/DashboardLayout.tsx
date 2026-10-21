@@ -1,34 +1,57 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router"
-import { Icon, PlatformLogo } from "./Icons"
 import {
-  navigation,
-  notifications,
-  roles,
-  schools,
-  students,
-  type Role,
-} from "../data"
+  Link,
+  NavLink,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router"
+import { Icon, PlatformLogo } from "./Icons"
+import { navigation, notifications, schools, students } from "../data"
+import {
+  APP_ROLES,
+  normalizeRole,
+  visibleNavigation,
+  type AppRole,
+} from "../permissions"
 import {
   getSessionProfile,
   isSignedIn,
   signOut,
+  supabaseConfigured,
   type SessionProfile,
 } from "../../services/supabase"
 
 export type AppContext = {
-  role: Role
+  /** Effective application role used for navigation and access checks. */
+  role: AppRole
+  /** Raw role name from the database, shown to the user. */
+  displayRole: string
+  /** True when the backend is not configured and demo data is shown. */
+  demoMode: boolean
   notify: (message: string, tone?: "success" | "error") => void
 }
 
+const DEMO_ROLE_KEY = "asbp_demo_role"
+
 export function DashboardLayout() {
-  const [role, setRole] = useState<Role>("Super Administrator")
+  // In live mode the role always comes from the database. A local
+  // demonstration role is only used when Supabase is not configured.
+  const [displayRole, setDisplayRole] = useState("Super Administrator")
+  const [effectiveRole, setEffectiveRole] = useState<AppRole>("Super Administrator")
+  const [authState, setAuthState] = useState<"checking" | "guest" | "member">(
+    "checking",
+  )
+  const [profileMissing, setProfileMissing] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [noticeOpen, setNoticeOpen] = useState(false)
   const [profile, setProfile] = useState<SessionProfile>(null)
   const [profileOpen, setProfileOpen] = useState(false)
   const [query, setQuery] = useState("")
   const searchRef = useRef<HTMLInputElement>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
 
   useEffect(() => {
     function focusSearch(event: KeyboardEvent) {
@@ -44,36 +67,49 @@ export function DashboardLayout() {
     message: string
     tone: "success" | "error"
   } | null>(null)
-  const location = useLocation()
-  const navigate = useNavigate()
 
-  // Auth gate: unauthenticated visitors are asked to sign in and then
-  // return to the page they tried to open.
+  // Auth gate: every protected dashboard route requires a valid session.
+  // Unauthenticated visitors are redirected to sign-in, preserving the
+  // page they requested. In live mode the session must be a real Supabase
+  // session and the role is loaded from the database by user id.
   useEffect(() => {
     let active = true
-    isSignedIn().then((authenticated) => {
-      if (!active || !authenticated) return
-      // Load the signed-in account's profile from the database once per page.
-      getSessionProfile().then((loaded) => {
-        if (active && loaded) setProfile(loaded)
-      })
+    isSignedIn().then(async (authenticated) => {
+      if (!active) return
+      if (!authenticated) {
+        setAuthState("guest")
+        return
+      }
+      setAuthState("member")
+      if (supabaseConfigured) {
+        const loaded = await getSessionProfile()
+        if (!active) return
+        if (!loaded) {
+          // Signed in, but the profile row is missing or not readable.
+          setProfileMissing(true)
+          return
+        }
+        setProfileMissing(false)
+        setProfile(loaded)
+        setDisplayRole(loaded.role)
+        setEffectiveRole(normalizeRole(loaded.role) ?? "Student")
+      } else {
+        // Demo mode (backend not configured): clearly-labelled preview role.
+        setProfileMissing(false)
+        const remembered = localStorage.getItem(DEMO_ROLE_KEY)
+        const parsed = normalizeRole(remembered)
+        setEffectiveRole(parsed ?? "Super Administrator")
+        setDisplayRole(parsed ?? "Super Administrator")
+      }
     })
     return () => {
       active = false
     }
-  }, [location.pathname, navigate])
+  }, [location.pathname])
 
   const visibleGroups = useMemo(
-    () =>
-      navigation
-        .map((group) => ({
-          ...group,
-          items: group.items.filter(
-            (item) => !item.roles || item.roles.includes(role),
-          ),
-        }))
-        .filter((group) => group.items.length),
-    [role],
+    () => visibleNavigation(effectiveRole),
+    [effectiveRole],
   )
 
   const normalizedQuery = query.trim().toLowerCase()
@@ -118,6 +154,48 @@ export function DashboardLayout() {
     window.setTimeout(() => setToast(null), 3200)
   }
 
+  if (authState === "guest")
+    return (
+      <Navigate
+        replace
+        state={{ requested: `${location.pathname}${location.search}` }}
+        to="/signin"
+      />
+    )
+  if (authState === "checking")
+    return (
+      <div className="auth-checking">
+        <span className="large-spinner" />
+        <p>Checking your session…</p>
+      </div>
+    )
+  if (profileMissing)
+    return (
+      <div className="app-shell">
+        <main className="app-content">
+          <div className="panel state-panel error" style={{ margin: "10vh auto", maxWidth: 520 }}>
+            <span className="state-icon">
+              <Icon name="shield" />
+            </span>
+            <h2>Your account is not set up yet</h2>
+            <p>
+              You are signed in, but your platform profile has not been created
+              or is not readable. Please contact a platform administrator.
+            </p>
+            <button
+              className="primary-action"
+              onClick={async () => {
+                await signOut()
+                navigate("/")
+              }}
+              type="button"
+            >
+              Sign out
+            </button>
+          </div>
+        </main>
+      </div>
+    )
   return (
     <div className="app-shell">
       <aside className={`app-sidebar ${mobileOpen ? "open" : ""}`}>
@@ -134,21 +212,36 @@ export function DashboardLayout() {
             <Icon name="close" />
           </button>
         </div>
-        <div className="role-switcher">
-          <span>Viewing platform as</span>
-          <select
-            value={role}
-            onChange={(event) => {
-              setRole(event.target.value as Role)
-              notify(`Dashboard updated for ${event.target.value}`)
-            }}
-            aria-label="Current role"
-          >
-            {roles.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-        </div>
+        {!supabaseConfigured ? (
+          <div className="role-switcher demo-only">
+            <span>
+              Demo preview role
+              <em>Not connected to a real account</em>
+            </span>
+            <select
+              value={effectiveRole}
+              onChange={(event) => {
+                const next = event.target.value as AppRole
+                localStorage.setItem(DEMO_ROLE_KEY, next)
+                setEffectiveRole(next)
+                setDisplayRole(next)
+                notify(`Demo preview switched to ${next}`)
+              }}
+              aria-label="Demo preview role"
+            >
+              {APP_ROLES.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className="role-switcher live-role">
+            <span>
+              Signed in as
+              <em>{displayRole}</em>
+            </span>
+          </div>
+        )}
         <nav className="sidebar-nav" aria-label="Dashboard navigation">
           {visibleGroups.map((group) => (
             <div className="nav-group" key={group.label}>
@@ -248,10 +341,10 @@ export function DashboardLayout() {
               aria-expanded={profileOpen}
               type="button"
             >
-              <span className="app-avatar">{profile?.initials ?? "NJ"}</span>
+              <span className="app-avatar">{profile?.initials ?? "?"}</span>
               <span>
-                <strong>{profile?.fullName ?? "Niyoyankijije Jacques"}</strong>
-                <small>{profile?.role ?? role}</small>
+                <strong>{profile?.fullName ?? "Signed-in user"}</strong>
+                <small>{displayRole}</small>
               </span>
               <span>⌄</span>
             </button>
@@ -306,7 +399,14 @@ export function DashboardLayout() {
           )}
         </header>
         <main className="app-content">
-          <Outlet context={{ role, notify } satisfies AppContext} />
+          <Outlet
+          context={{
+            role: effectiveRole,
+            displayRole,
+            demoMode: !supabaseConfigured,
+            notify,
+          } satisfies AppContext}
+        />
         </main>
         <footer className="app-footer">
           <span>Adventist Schools & Bible Platform · Rwanda</span>

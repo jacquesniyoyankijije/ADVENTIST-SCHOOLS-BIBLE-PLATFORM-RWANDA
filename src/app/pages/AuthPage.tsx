@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 import { Icon, PlatformLogo } from "../components/Icons"
 import {
+  isSignedIn,
   markDemoSession,
   pageLabel,
   register,
@@ -9,7 +10,13 @@ import {
   signInWithGoogle,
   signInWithSso,
   supabaseConfigured,
+  takeNext,
 } from "../../services/supabase"
+import {
+  validateEmail,
+  validateFullName,
+  validatePassword,
+} from "../../services/validation"
 
 const GoogleLogo = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -34,8 +41,8 @@ const GoogleLogo = () => (
 
 export function AuthPage() {
   const [mode, setMode] = useState<"signin" | "register">("signin")
-  const [email, setEmail] = useState("admin@adventist.rw")
-  const [password, setPassword] = useState("demo1234")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [name, setName] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -46,6 +53,20 @@ export function AuthPage() {
   const [ssoOpen, setSsoOpen] = useState(false)
   const [ssoEmail, setSsoEmail] = useState("")
   const [info, setInfo] = useState("")
+
+  // Session restoration: a returning Google/SSO visitor (or someone whose
+  // token was refreshed) is taken straight to the page they requested.
+  useEffect(() => {
+    if (!supabaseConfigured) return
+    let active = true
+    isSignedIn().then((signedIn) => {
+      if (!active || !signedIn) return
+      navigate(takeNext() ?? "/app", { replace: true })
+    })
+    return () => {
+      active = false
+    }
+  }, [navigate])
 
   async function continueWithGoogle() {
     setError("")
@@ -89,26 +110,45 @@ export function AuthPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (mode === "register" && name.trim().length < 3)
-      return setError("Please enter your full name.")
-    if (!/^\S+@\S+\.\S+$/.test(email))
-      return setError("Enter a valid email address.")
-    if (password.length < 8)
-      return setError("Password must contain at least 8 characters.")
     setError("")
+    setInfo("")
+    if (mode === "register") {
+      const nameCheck = validateFullName(name)
+      if (!nameCheck.ok) return setError(nameCheck.message)
+    }
+    const emailCheck = validateEmail(email)
+    if (!emailCheck.ok) return setError(emailCheck.message)
+    const passwordCheck = validatePassword(password)
+    if (!passwordCheck.ok) return setError(passwordCheck.message)
     setLoading(true)
     if (supabaseConfigured) {
-      // Live mode: authenticate against Supabase Auth.
-      const failure =
-        mode === "signin"
-          ? await signIn(email, password)
-          : await register(email, password, name)
-      if (failure) {
-        setLoading(false)
-        return setError(failure)
+      if (mode === "signin") {
+        const failure = await signIn(email, password)
+        if (failure) {
+          setLoading(false)
+          return setError(failure)
+        }
+      } else {
+        const result = await register(email, password, name)
+        if (!result) {
+          setLoading(false)
+          return setError("Registration is unavailable. Please try again.")
+        }
+        if (!result.ok) {
+          setLoading(false)
+          return setError(result.error)
+        }
+        if (result.needsConfirmation) {
+          setLoading(false)
+          setInfo(
+            "Account requested. Check your email for the confirmation link before signing in.",
+          )
+          setMode("signin")
+          return
+        }
       }
     } else {
-      // Demo mode (no Supabase configured): simulated session.
+      // Demo mode (no Supabase configured): simulated session, clearly labelled.
       markDemoSession()
     }
     // Continue to the page the visitor asked for, or the dashboard.
@@ -310,7 +350,7 @@ export function AuthPage() {
             <span>
               {supabaseConfigured
                 ? "Supabase is connected. Sign in with email, Google or SSO."
-                : "Demo mode: email, Google and SSO sign-ins are simulated until Supabase is connected."}
+                : "Demo mode: sign-ins are simulated, data is sample data, and no real account or administrative access exists until Supabase is connected."}
             </span>
           </div>
           <Link className="back-home" to="/">

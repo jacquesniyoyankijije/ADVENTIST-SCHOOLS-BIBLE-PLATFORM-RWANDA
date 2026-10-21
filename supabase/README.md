@@ -9,8 +9,15 @@ This repository uses Supabase Auth and PostgreSQL. Apply migrations in order fro
 3. Copy and run `supabase/migrations/0001_initial.sql`.
 4. In a separate query, copy and run `supabase/migrations/0002_auth_and_privilege_hardening.sql`.
 5. In another query, copy and run `supabase/migrations/0003_platform_schema.sql` (full platform tables: classes, students, results, discipline, fees, Bible and lesson content, messaging, notifications — all with Row Level Security).
-6. In **Project Settings → API** (or the API keys page), copy the Project URL and the public anon/publishable key.
-7. In Render → your Static Site → **Environment**, add:
+6. In another query, copy and run `supabase/migrations/0004_sso_identity_support.sql` (provider sign-in profile support).
+7. Finally, copy and run `supabase/migrations/0005_security_and_data_fixes.sql` — forward-only corrections:
+   - canonical role names matching the frontend (`School Leader`/`DOS Officer`/`Discipline Officer` → `School Administrator`, `Bursar Officer` → `Bursar`; adds `Church Leader`)
+   - the table GRANTs 0003 was missing (authenticated users could not read the new tables)
+   - the `thread_participants` RLS recursion fix via a SECURITY DEFINER helper
+   - thread/participant creation policies and scoped policies rewritten for the canonical role names
+   The file ends with verification queries you should run after applying it.
+8. In **Project Settings → API** (or the API keys page), copy the Project URL and the public anon/publishable key.
+9. In Render → your Static Site → **Environment**, add:
    - `VITE_SUPABASE_URL` = your Supabase Project URL
    - `VITE_SUPABASE_ANON_KEY` = your public anon/publishable key
 8. Save changes and trigger a new deploy. These `VITE_` values are bundled into the public frontend; only use the public key, never a service_role/secret key.
@@ -62,6 +69,12 @@ where id = 'PASTE-VERIFIED-AUTH-USER-UUID-HERE';
 5. Confirm exactly one row was updated. Sign out and sign in again so the UI reloads the profile and role.
 
 Only a trusted project owner should run the promotion SQL. Do not add a browser button or public endpoint that lets users grant themselves administrator access.
+
+## Migration order (reference)
+
+0001_initial.sql → 0002_auth_and_privilege_hardening.sql → 0003_platform_schema.sql → 0004_sso_identity_support.sql → 0005_security_and_data_fixes.sql
+
+Never edit an applied migration; corrections go in a new numbered file.
 
 ## Security notes
 
